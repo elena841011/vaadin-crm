@@ -1,22 +1,25 @@
-package com.vaadin.tutorial.crm.ui;
+package com.vaadin.tutorial.crm.ui.view.list;
 
-import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.tutorial.crm.backend.entity.Company;
 import com.vaadin.tutorial.crm.backend.entity.Contact;
 import com.vaadin.tutorial.crm.backend.service.CompanyService;
 import com.vaadin.tutorial.crm.backend.service.ContactService;
+import com.vaadin.tutorial.crm.ui.MainLayout;
 
-@Route("")
-@CssImport("./styles/shared-styles.css")
+@Route(value="", layout = MainLayout.class)
+@PageTitle("Contacts | Vaadin CRM")
 //@SpringComponent
 //@Scope("prototype")
-public class MainView extends VerticalLayout {
+public class ListView extends VerticalLayout {
 
     private ContactService contactService;
     private Grid<Contact> grid = new Grid<>(Contact.class);
@@ -24,17 +27,20 @@ public class MainView extends VerticalLayout {
     private ContactForm form;
 
 
-    public MainView(ContactService contactService, CompanyService companyService) {
+    public ListView(ContactService contactService, CompanyService companyService) {
         this.contactService = contactService;
         addClassName("list-view");
         setSizeFull();
 
-        configureFilter();
         configureGrid();
 
 //        Initialize the form in the constructor
 //        companyService.findAll()
-         form = new ContactForm(companyService.findAll());
+        form = new ContactForm(companyService.findAll());
+        form.addListener(ContactForm.SaveEvent.class, this::saveContact);
+        form.addListener(ContactForm.DeleteEvent.class, this::deleteContact);
+        form.addListener(ContactForm.CloseEvent.class, e -> closeEditor());
+
 
 //        Creates a Div that wraps the grid and the form, gives it a CSS class name, and makes it full size.
 //        把grid(左邊的聯絡表格)以及表單填入content中
@@ -43,16 +49,49 @@ public class MainView extends VerticalLayout {
         content.addClassName("content");
         content.setSizeFull();
 
-        add(filterText, content);
+        add(getToolbar(), content);
         updateList();
+
+        closeEditor();
     }
+
+    private void deleteContact(ContactForm.DeleteEvent event) {
+        contactService.delete(event.getContact());
+        updateList();
+        closeEditor();
+    }
+
+    private void saveContact(ContactForm.SaveEvent event) {
+        contactService.save(event.getContact());
+        updateList();
+        closeEditor();
+    }
+
+
+    private void closeEditor() {
+        form.setContact(null);
+        form.setVisible(false);
+        removeClassName("editing");
+    }
+
     //search by name
-    private void configureFilter() {
+    private HorizontalLayout getToolbar() {
         filterText.setPlaceholder("Filter by name...");
         filterText.setClearButtonVisible(true);
         filterText.setValueChangeMode(ValueChangeMode.LAZY);
         filterText.addValueChangeListener(e -> updateList());
 
+        Button addContactButton = new Button("Add contact");
+        addContactButton.addClickListener(click -> addContact());
+        HorizontalLayout toolbar = new HorizontalLayout(filterText, addContactButton
+        );
+        toolbar.addClassName("toolbar");
+        return toolbar;
+    }
+
+    private void addContact() {
+        grid.asSingleSelect().clear();
+        editContact(new Contact());
     }
 
     private void configureGrid() {
@@ -70,6 +109,20 @@ public class MainView extends VerticalLayout {
 
 //        turn on automatic column sizing
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
+
+//        We only want to select a single row: asSingleSelect()
+        grid.asSingleSelect().addValueChangeListener(event -> editContact(event.getValue()));
+
+    }
+
+    private void editContact(Contact contact) {
+        if (contact == null) {
+            closeEditor();
+        } else {
+            form.setContact(contact);
+            form.setVisible(true);
+            addClassName("editing");
+        }
     }
 
     private void updateList() {

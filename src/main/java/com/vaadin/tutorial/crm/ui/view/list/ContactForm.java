@@ -1,4 +1,4 @@
-package com.vaadin.tutorial.crm.ui;
+package com.vaadin.tutorial.crm.ui.view.list;
 
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
@@ -12,6 +12,7 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.tutorial.crm.backend.entity.Company;
 import com.vaadin.tutorial.crm.backend.entity.Contact;
@@ -82,7 +83,24 @@ public class ContactForm extends FormLayout {
 //        Defines keyboard shortcuts: Enter to save and Escape to close the editor
 		save.addClickShortcut(Key.ENTER);
 		close.addClickShortcut(Key.ESCAPE);
+
+		save.addClickListener(event -> validateAndSave());
+		delete.addClickListener(event -> fireEvent(new DeleteEvent(this, contact)));
+		close.addClickListener(event -> fireEvent(new CloseEvent(this)));
+
+//		Validates the form every time it changes. If it is invalid, it disables the save button to avoid invalid submissions.
+		binder.addStatusChangeListener(e -> save.setEnabled(binder.isValid()));
+
 		return new HorizontalLayout(save, delete, close);
+	}
+
+	private void validateAndSave() {
+		try {
+			binder.writeBean(contact);
+			fireEvent(new SaveEvent(this, contact));
+		} catch (ValidationException e) {
+			e.printStackTrace();
+		}
 	}
 
 // Events
