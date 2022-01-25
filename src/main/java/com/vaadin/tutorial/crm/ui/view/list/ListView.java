@@ -1,6 +1,7 @@
 package com.vaadin.tutorial.crm.ui.view.list;
 
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -15,6 +16,8 @@ import com.vaadin.tutorial.crm.backend.service.CompanyService;
 import com.vaadin.tutorial.crm.backend.service.ContactService;
 import com.vaadin.tutorial.crm.ui.MainLayout;
 
+import java.util.List;
+
 @Route(value="", layout = MainLayout.class)
 @PageTitle("Contacts | Vaadin CRM")
 //@SpringComponent
@@ -25,6 +28,8 @@ public class ListView extends VerticalLayout {
     private Grid<Contact> grid = new Grid<>(Contact.class);
     private TextField filterText = new TextField();
     private ContactForm form;
+    private ComboBox<Company> company = new ComboBox<>("Company");
+
 
 
     public ListView(ContactService contactService, CompanyService companyService) {
@@ -40,7 +45,7 @@ public class ListView extends VerticalLayout {
         form.addListener(ContactForm.SaveEvent.class, this::saveContact);
         form.addListener(ContactForm.DeleteEvent.class, this::deleteContact);
         form.addListener(ContactForm.CloseEvent.class, e -> closeEditor());
-
+        List<Company> all = companyService.findAll();
 
 //        Creates a Div that wraps the grid and the form, gives it a CSS class name, and makes it full size.
 //        把grid(左邊的聯絡表格)以及表單填入content中
@@ -49,9 +54,8 @@ public class ListView extends VerticalLayout {
         content.addClassName("content");
         content.setSizeFull();
 
-        add(getToolbar(), content);
+        add(getToolbar(), companyCombox(all), content);
         updateList();
-
         closeEditor();
     }
 
@@ -88,6 +92,14 @@ public class ListView extends VerticalLayout {
         toolbar.addClassName("toolbar");
         return toolbar;
     }
+
+    private ComboBox<Company> companyCombox(List<Company> companyService){
+        //setItems是實際上賦予這些選項值
+        company.setItems(companyService);
+        company.setItemLabelGenerator(Company::getName);
+        return company;
+    }
+
 
     private void addContact() {
         grid.asSingleSelect().clear();

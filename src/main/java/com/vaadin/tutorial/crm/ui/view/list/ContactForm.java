@@ -57,12 +57,13 @@ public class ContactForm extends FormLayout {
 //        bindInstanceFields matches fields in Contact and ContactForm based on their names.
 		binder.bindInstanceFields(this);
 
-		company.setItems(companyService);
+
 
 //        Tells the combo box to use the name of the company as the display value.
 //        Company::getName-> method reference
 
 //        從item長出label, 若不設定的話就會call to String = String::valueOf
+		company.setItems(companyService);
 		company.setItemLabelGenerator(Company::getName);
 		status.setItems(Contact.Status.values());
 
